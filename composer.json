@@ -1,0 +1,40 @@
+{
+    "name": "ergosarapu/payum-everypay",
+    "type": "project",
+    "description": "The Payum extension for EveryPay.",
+    "keywords": ["payment", "payum", "everypay"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ergo Sarapu",
+            "email": "ergosarapu@users.noreply.github.com"
+        }
+    ],
+    "require-dev": {
+        "php-http/guzzle7-adapter": "^1.0",
+        "phpunit/phpunit": "^11",
+        "php-http/discovery": "^1.20",
+        "friendsofphp/php-cs-fixer": "^3.65",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan-beberlei-assert": "^2.0"
+    },
+    "config": {
+        "bin-dir": "bin",
+        "allow-plugins": {
+            "php-http/discovery": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "autoload": {
+        "psr-4": { "ErgoSarapu\\PayumEveryPay\\": "src" }
+    },
+    "autoload-dev": {
+        "psr-4": { "ErgoSarapu\\PayumEveryPay\\Tests\\": "tests" }
+    },
+    "require": {
+        "payum/core": "^1.7",
+        "php-http/message-factory": "^1.1",
+        "beberlei/assert": "^3.3"
+    }
+}

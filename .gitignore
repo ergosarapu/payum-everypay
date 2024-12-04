@@ -1,0 +1,6 @@
+/vendor
+/.ddev
+/.phpunit.cache
+/.vscode
+/bin
+/.php-cs-fixer.cache
