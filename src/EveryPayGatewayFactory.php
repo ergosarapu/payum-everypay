@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace ErgoSarapu\PayumEveryPay;
 
 use Assert\Assertion;
+use ErgoSarapu\PayumEveryPay\Action\Api\CaptureAction as ApiCaptureAction;
+use ErgoSarapu\PayumEveryPay\Action\Api\CitAndChargeAction;
+use ErgoSarapu\PayumEveryPay\Action\Api\MitAndChargeAction;
 use ErgoSarapu\PayumEveryPay\Action\Api\OneOffAction;
 use ErgoSarapu\PayumEveryPay\Action\Api\SyncAction;
 use ErgoSarapu\PayumEveryPay\Action\AuthorizeAction;
@@ -14,6 +17,7 @@ use ErgoSarapu\PayumEveryPay\Action\ConvertPaymentAction;
 use ErgoSarapu\PayumEveryPay\Action\NotifyAction;
 use ErgoSarapu\PayumEveryPay\Action\RefundAction;
 use ErgoSarapu\PayumEveryPay\Action\StatusAction;
+use ErgoSarapu\PayumEveryPay\Action\ThrowOnNullTokenDetailsNotifyAction;
 use Http\Message\MessageFactory;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RuntimeException;
@@ -27,6 +31,8 @@ class EveryPayGatewayFactory extends GatewayFactory
      */
     protected function populateConfig(ArrayObject $config): void
     {
+
+
         $config->defaults([
             'payum.factory_name' => 'everypay',
             'payum.factory_title' => 'EveryPay',
@@ -35,11 +41,16 @@ class EveryPayGatewayFactory extends GatewayFactory
             'payum.action.refund' => new RefundAction(),
             'payum.action.cancel' => new CancelAction(),
             'payum.action.notify' => new NotifyAction(),
+            'payum.action.throw_on_null_token_details' => new ThrowOnNullTokenDetailsNotifyAction(),
             'payum.action.sync' => new SyncAction(),
             'payum.action.status' => new StatusAction(),
             'payum.action.convert_payment' => new ConvertPaymentAction(),
 
             'payum.action.api.one_off' => new OneOffAction(),
+            'payum.action.api.capture' => new ApiCaptureAction(),
+            'payum.action.api.authorize_mit' => new MitAndChargeAction(),
+            'payum.action.api.authorize_cit' => new CitAndChargeAction(),
+
         ]);
 
         if (false == $config['payum.api']) {
@@ -83,8 +94,6 @@ class EveryPayGatewayFactory extends GatewayFactory
                 Assertion::string($config['secret']);
                 Assertion::string($config['account_name']);
                 Assertion::boolean($config['sandbox']);
-                Assertion::nullOrString($config['token_agreement']);
-                Assertion::nullOrBoolean($config['token_consent_agreed']);
                 Assertion::nullOrString($config['customer_url_replace_search']);
                 Assertion::nullOrString($config['customer_url_replace_replacement']);
 
@@ -95,8 +104,6 @@ class EveryPayGatewayFactory extends GatewayFactory
                     secret: $config['secret'],
                     accountName: $config['account_name'],
                     sandbox: $config['sandbox'],
-                    tokenAgreement: $config['token_agreement'],
-                    tokenConsentAgreed: $config['token_consent_agreed'],
                     customerUrlReplaceSearch: $config['customer_url_replace_search'],
                     customerUrlReplaceReplacement: $config['customer_url_replace_replacement']
                 );

@@ -5,22 +5,19 @@ declare(strict_types=1);
 namespace ErgoSarapu\PayumEveryPay\Action\Api;
 
 use ErgoSarapu\PayumEveryPay\Api;
-use ErgoSarapu\PayumEveryPay\Const\PaymentType;
-use ErgoSarapu\PayumEveryPay\Request\Api\Authorize;
+use ErgoSarapu\PayumEveryPay\Request\Api\Capture;
+use ErgoSarapu\PayumEveryPay\Request\Api\OneOff;
 use ErgoSarapu\PayumEveryPay\Util\Util;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
-use Payum\Core\Reply\HttpRedirect;
-use Payum\Core\Request\GetHttpRequest;
-use Payum\Core\Request\GetHumanStatus;
 
-class OneOffAction extends BaseApiAwareAction
+class CaptureAction extends BaseApiAwareAction
 {
     /**
      * {@inheritDoc}
      *
-     * @param Authorize $request
+     * @param OneOff $request
      */
     public function execute($request): void
     {
@@ -32,20 +29,8 @@ class OneOffAction extends BaseApiAwareAction
             throw new UnsupportedApiException('Incompatible api instance');
         }
 
-        $this->gateway->execute($getStatus = new GetHumanStatus($model));
-        if ($getStatus->isPending() && is_string($model['payment_link'])) {
-            throw new HttpRedirect($model['payment_link']);
-        }
-
-        $this->gateway->execute($httpRequest = new GetHttpRequest());
-        $model['customer_ip'] = $httpRequest->clientIp;
-
-        $response = $this->api->doOneOff($model);
+        $response = $this->api->doCapture($model);
         Util::updateModel($model, $response);
-
-        if (is_string($model['payment_link'])) {
-            throw new HttpRedirect($model['payment_link']);
-        }
     }
 
     /**
@@ -53,20 +38,20 @@ class OneOffAction extends BaseApiAwareAction
      */
     public function supports(mixed $request)
     {
-        if (!$request instanceof Authorize) {
+        if (!$request instanceof Capture) {
+            return false;
+        }
+
+        if (!$request->getModel() instanceof \ArrayAccess) {
             return false;
         }
 
         $model = $request->getModel();
-        if (!$model instanceof \ArrayAccess) {
-            return false;
-        }
-
         if (!$model->offsetExists('_type')) {
             return false;
         }
 
-        if ($model['_type'] !== PaymentType::ONE_OFF) {
+        if (!$model->offsetExists('payment_reference')) {
             return false;
         }
 

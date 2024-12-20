@@ -9,18 +9,19 @@ use ErgoSarapu\PayumEveryPay\Const\PaymentType;
 use ErgoSarapu\PayumEveryPay\Request\Api\Authorize;
 use ErgoSarapu\PayumEveryPay\Util\Util;
 use Payum\Core\Bridge\Spl\ArrayObject;
+use Payum\Core\Exception\InvalidArgumentException;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Reply\HttpRedirect;
 use Payum\Core\Request\GetHttpRequest;
-use Payum\Core\Request\GetHumanStatus;
 
-class OneOffAction extends BaseApiAwareAction
+class CitAndChargeAction extends BaseApiAwareAction
 {
     /**
      * {@inheritDoc}
      *
      * @param Authorize $request
+     * @throws HttpRedirect
      */
     public function execute($request): void
     {
@@ -32,20 +33,21 @@ class OneOffAction extends BaseApiAwareAction
             throw new UnsupportedApiException('Incompatible api instance');
         }
 
-        $this->gateway->execute($getStatus = new GetHumanStatus($model));
-        if ($getStatus->isPending() && is_string($model['payment_link'])) {
-            throw new HttpRedirect($model['payment_link']);
-        }
-
         $this->gateway->execute($httpRequest = new GetHttpRequest());
         $model['customer_ip'] = $httpRequest->clientIp;
 
-        $response = $this->api->doOneOff($model);
+        $model->validatedKeysSet(['customer_url']);
+
+        $response = $this->api->doCit($model);
         Util::updateModel($model, $response);
 
-        if (is_string($model['payment_link'])) {
-            throw new HttpRedirect($model['payment_link']);
+        $response = $this->api->doCharge($model);
+        Util::updateModel($model, $response);
+
+        if (!is_string($model['payment_link'])) {
+            throw new InvalidArgumentException('payment_link not a string');
         }
+        throw new HttpRedirect($model['payment_link']);
     }
 
     /**
@@ -66,7 +68,7 @@ class OneOffAction extends BaseApiAwareAction
             return false;
         }
 
-        if ($model['_type'] !== PaymentType::ONE_OFF) {
+        if ($model['_type'] !== PaymentType::CIT) {
             return false;
         }
 

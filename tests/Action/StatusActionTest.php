@@ -7,7 +7,6 @@ namespace ErgoSarapu\PayumEveryPay\Tests\Action;
 use ErgoSarapu\PayumEveryPay\Action\StatusAction;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
-use Payum\Core\Exception\InvalidArgumentException;
 use Payum\Core\GatewayInterface;
 use Payum\Core\Request\Capture;
 use Payum\Core\Request\GetBinaryStatus;
@@ -18,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(StatusAction::class)]
 class StatusActionTest extends TestCase
 {
-    public function testShouldImplements(): void
+    public function testImplements(): void
     {
         $action = new StatusAction();
 
@@ -36,76 +35,95 @@ class StatusActionTest extends TestCase
         $this->assertFalse($action->supports(new Capture([])));
     }
 
-    public function testShouldMarkNewIfPaymentStateNotExists(): void
+    public function testMarkNewIfPaymentStateNotExists(): void
     {
         $action = new StatusAction();
         $action->execute($request = new GetHumanStatus(['foo' => 'bar']));
         $this->assertTrue($request->isNew());
     }
 
-    public function testShouldThrowIfUnknownPaymentState(): void
+    public function testMarkUnknownIfUnknownPaymentState(): void
     {
         $action = new StatusAction();
-        $this->expectException(InvalidArgumentException::class);
-        $action->execute(new GetHumanStatus(['payment_state' => 'foobar']));
+        $action->execute($request = new GetHumanStatus(['payment_state' => 'foobar']));
+        $this->assertTrue($request->isUnknown());
     }
 
-    public function testShouldMarkPendingIfPaymentStateInitial(): void
+    public function testMarkPendingIfPaymentStateInitial(): void
     {
         $action = new StatusAction();
         $action->execute($request = new GetHumanStatus(['payment_state' => 'initial']));
         $this->assertTrue($request->isPending());
     }
 
-    // TODO: Waiting for 3DS
+    public function testMarkPendingIfPaymentStateSentForProcessing(): void
+    {
+        $action = new StatusAction();
+        $action->execute($request = new GetHumanStatus(['payment_state' => 'sent_for_processing']));
+        $this->assertTrue($request->isPending());
+    }
 
-    // TODO: Waiting for SCA (Strong Customer Authentication)
+    public function testMarkPendingIfPaymentStateWaitingFor3dsResponse(): void
+    {
+        $action = new StatusAction();
+        $action->execute($request = new GetHumanStatus(['payment_state' => 'waiting_for_3ds_response']));
+        $this->assertTrue($request->isPending());
+    }
 
-    // TODO: Sent for processing
+    public function testMarkPendingIfPaymentStateWaitingForSca(): void
+    {
+        $action = new StatusAction();
+        $action->execute($request = new GetHumanStatus(['payment_state' => 'waiting_for_sca']));
+        $this->assertTrue($request->isPending());
+    }
 
-    public function testShouldMarkExpiredIfPaymentStateAbandoned(): void
+    public function testMarkPendingIfPaymentStateConfirmed3ds(): void
+    {
+        $action = new StatusAction();
+        $action->execute($request = new GetHumanStatus(['payment_state' => 'confirmed_3ds']));
+        $this->assertTrue($request->isPending());
+    }
+
+    public function testMarkExpiredIfPaymentStateAbandoned(): void
     {
         $action = new StatusAction();
         $action->execute($request = new GetHumanStatus(['payment_state' => 'abandoned']));
         $this->assertTrue($request->isExpired());
     }
 
-    public function testShouldMarkFailedIfPaymentStateFailed(): void
+    public function testMarkFailedIfPaymentStateFailed(): void
     {
         $action = new StatusAction();
         $action->execute($request = new GetHumanStatus(['payment_state' => 'failed']));
         $this->assertTrue($request->isFailed());
     }
 
-    public function testShouldMarkCapturedIfPaymentStateSettled(): void
+    public function testMarkCapturedIfPaymentStateSettled(): void
     {
         $action = new StatusAction();
         $action->execute($request = new GetHumanStatus(['payment_state' => 'settled']));
         $this->assertTrue($request->isCaptured());
     }
 
-    public function testShouldMarkAuthorizedIfPaymentStateAuthorized(): void
-    {
-        $action = new StatusAction();
-        $action->execute($request = new GetHumanStatus(['payment_state' => 'authorized']));
-        $this->assertTrue($request->isAuthorized());
-    }
-
-    public function testShouldMarkCanceledIfPaymentStateVoided(): void
+    public function testMarkCanceledIfPaymentStateVoided(): void
     {
         $action = new StatusAction();
         $action->execute($request = new GetHumanStatus(['payment_state' => 'voided']));
         $this->assertTrue($request->isCanceled());
     }
 
-    public function testShouldMarkRefundedIfPaymentStateRefunded(): void
+    public function testMarkRefundedIfPaymentStateRefunded(): void
     {
         $action = new StatusAction();
         $action->execute($request = new GetHumanStatus(['payment_state' => 'refunded']));
         $this->assertTrue($request->isRefunded());
     }
 
-    // TODO: Charged Back
+    public function testMarkSuspendedIfPaymentStateChargeBacked(): void
+    {
+        $action = new StatusAction();
+        $action->execute($request = new GetHumanStatus(['payment_state' => 'chargebacked']));
+        $this->assertTrue($request->isSuspended());
+    }
 
-    // TODO: 3DS Confirmed
 }

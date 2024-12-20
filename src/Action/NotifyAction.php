@@ -11,6 +11,7 @@ use Payum\Core\GatewayAwareInterface;
 use Payum\Core\GatewayAwareTrait;
 use Payum\Core\Model\PaymentInterface;
 use Payum\Core\Reply\HttpResponse;
+use Payum\Core\Request\Capture;
 use Payum\Core\Request\GetHttpRequest;
 use Payum\Core\Request\GetHumanStatus;
 use Payum\Core\Request\Notify;
@@ -19,6 +20,9 @@ use Payum\Core\Request\Sync;
 class NotifyAction implements ActionInterface, GatewayAwareInterface
 {
     use GatewayAwareTrait;
+
+    public const AUTO_CAPTURE_QUEUED = 'queued';
+    private const AUTO_CAPTURE_TRIGGERED = 'triggered';
 
     /**
      * {@inheritDoc}
@@ -35,7 +39,7 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
 
         $this->gateway->execute($httpRequest = new GetHttpRequest());
         if (!isset($httpRequest->query['payment_reference'])) {
-            throw new HttpResponse('Missing payment_reference', 400);
+            throw new HttpResponse('payment_reference missing', 400);
         }
         $model['payment_reference'] = $httpRequest->query['payment_reference'];
 
@@ -50,6 +54,11 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
             $payment->setDetails($model);
         }
         $this->gateway->execute(new GetHumanStatus($payment));
+
+        if ($model['_auto_capture_with_notify'] === self::AUTO_CAPTURE_QUEUED) {
+            $model['_auto_capture_with_notify'] = self::AUTO_CAPTURE_TRIGGERED;
+            $this->gateway->execute(new Capture($payment));
+        }
     }
 
     /**
@@ -58,8 +67,8 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
     public function supports($request)
     {
         return
-            $request instanceof Notify &&
-            $request->getModel() instanceof \ArrayAccess
+            $request instanceof Notify
+            && $request->getModel() instanceof \ArrayAccess
         ;
     }
 }

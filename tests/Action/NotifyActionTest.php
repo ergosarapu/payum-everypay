@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(NotifyAction::class)]
 class NotifyActionTest extends TestCase
 {
-    public function testShouldImplements(): void
+    public function testImplements(): void
     {
         $action = new NotifyAction();
 
@@ -39,7 +39,7 @@ class NotifyActionTest extends TestCase
         $this->assertTrue($action->supports(new Notify([])));
     }
 
-    public function testShouldThrowHttpResponseIfPaymentReferenceMissing(): void
+    public function testThrowsHttpResponseIfPaymentReferenceMissing(): void
     {
         $gatewayMock = $this->createMock(GatewayInterface::class);
         $gatewayMock

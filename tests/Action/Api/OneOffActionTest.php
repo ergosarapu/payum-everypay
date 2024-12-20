@@ -7,16 +7,20 @@ namespace ErgoSarapu\PayumEveryPay\Tests\Action\Api;
 use ErgoSarapu\PayumEveryPay\Action\Api\BaseApiAwareAction;
 use ErgoSarapu\PayumEveryPay\Action\Api\OneOffAction;
 use ErgoSarapu\PayumEveryPay\Api;
-use ErgoSarapu\PayumEveryPay\Request\Api\OneOff;
+use ErgoSarapu\PayumEveryPay\Const\PaymentType;
+use ErgoSarapu\PayumEveryPay\Request\Api\Authorize;
 use Payum\Core\GatewayInterface;
 use Payum\Core\Reply\HttpRedirect;
+use Payum\Core\Request\GetHttpRequest;
+use Payum\Core\Request\GetHumanStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Authorize::class)]
 #[CoversClass(OneOffAction::class)]
 class OneOffActionTest extends TestCase
 {
-    public function testShouldImplements(): void
+    public function testImplements(): void
     {
         $action = new OneOffAction();
 
@@ -28,9 +32,10 @@ class OneOffActionTest extends TestCase
     {
         $action = new OneOffAction();
 
-        $this->assertTrue($action->supports(new OneOff([])));
-        $this->assertFalse($action->supports(new OneOff(null)));
-        $this->assertFalse($action->supports(new OneOff(null)));
+        $this->assertTrue($action->supports(new Authorize(['_type' => PaymentType::ONE_OFF])));
+        $this->assertFalse($action->supports(new Authorize([])));
+        $this->assertFalse($action->supports(new Authorize(null)));
+        $this->assertFalse($action->supports(new Authorize(null)));
     }
 
     public function testThrowsRedirectOnResponse(): void
@@ -42,16 +47,59 @@ class OneOffActionTest extends TestCase
             ->willReturn(['payment_link' => 'https://example.com'])
         ;
 
+        $expectRequests = [
+            GetHumanStatus::class,
+            GetHttpRequest::class
+        ];
         $gatewayMock = $this->createMock(GatewayInterface::class);
         $gatewayMock
-            ->expects($this->once())
-            ->method('execute');
+            ->expects($this->exactly(count($expectRequests)))
+            ->method('execute')
+            ->with($this->callback(function ($request) use (&$expectRequests): bool {
+                $class = array_shift($expectRequests);
+                $this->assertNotNull($class);
+                $this->assertTrue(class_exists($class));
+                $this->assertInstanceOf($class, $request);
+
+                if ($request instanceof GetHumanStatus) {
+                    $request->markNew();
+                }
+
+                if ($request instanceof GetHttpRequest) {
+                    $request->clientIp = '127.0.0.1';
+                }
+
+                return true;
+            }))
+        ;
 
         $action = new OneOffAction();
         $action->setApi($apiMock);
         $action->setGateway($gatewayMock);
 
         $this->expectExceptionObject(new HttpRedirect('https://example.com'));
-        $action->execute(new OneOff([]));
+        $action->execute(new Authorize(['_type' => PaymentType::ONE_OFF]));
+    }
+
+    public function testThrowsRedirectIfPendingWithPaymentLink(): void
+    {
+        $apiMock = $this->createMock(Api::class);
+
+        $gatewayMock = $this->createMock(GatewayInterface::class);
+        $gatewayMock
+            ->expects($this->once())
+            ->method('execute')
+            ->with($this->callback(function (GetHumanStatus $request): bool {
+                $request->markPending();
+                return true;
+            }))
+        ;
+
+        $action = new OneOffAction();
+        $action->setApi($apiMock);
+        $action->setGateway($gatewayMock);
+
+        $this->expectExceptionObject(new HttpRedirect('https://example.com'));
+        $action->execute(new Authorize(['_type' => PaymentType::ONE_OFF, 'payment_link' => 'https://example.com']));
     }
 }

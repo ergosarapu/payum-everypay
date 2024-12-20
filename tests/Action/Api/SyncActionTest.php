@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SyncAction::class)]
 class SyncActionTest extends TestCase
 {
-    public function testShouldImplements(): void
+    public function testImplements(): void
     {
         $action = new SyncAction();
 

@@ -6,23 +6,21 @@ namespace ErgoSarapu\PayumEveryPay\Tests;
 
 use Assert\InvalidArgumentException;
 use ErgoSarapu\PayumEveryPay\Api;
-use Http\Discovery\MessageFactoryDiscovery;
-use Http\Message\MessageFactory;
+use ErgoSarapu\PayumEveryPay\Tests\Helper\NetworkMockTrait;
+use ErgoSarapu\PayumEveryPay\Tests\Helper\RequestResponseHelper as R;
 use Payum\Core\Bridge\Spl\ArrayObject;
-use Payum\Core\HttpClientInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
 
 #[CoversClass(Api::class)]
 class ApiTest extends TestCase
 {
-    public function testShouldReturnSandboxEndpointIfSandboxSetTrueInConstructor(): void
+    use NetworkMockTrait;
+
+    public function testReturnSandboxEndpointIfSandboxSetTrueInConstructor(): void
     {
         $api = new Api(
-            client: $this->createMock(HttpClientInterface::class),
+            client: $this->createClientMock([]),
             messageFactory: $this->createHttpMessageFactory(),
             username: 'test_username',
             secret: 'test_secret',
@@ -32,10 +30,10 @@ class ApiTest extends TestCase
         $this->assertSame('https://igw-demo.every-pay.com/api/v4/payments', $api->getApiEndpoint());
     }
 
-    public function testShouldReturnLiveEndpointIfSandboxSetFalseInConstructor(): void
+    public function testReturnLiveEndpointIfSandboxSetFalseInConstructor(): void
     {
         $api = new Api(
-            client: $this->createMock(HttpClientInterface::class),
+            client: $this->createClientMock([]),
             messageFactory: $this->createHttpMessageFactory(),
             username: 'test_username',
             secret: 'test_secret',
@@ -45,15 +43,29 @@ class ApiTest extends TestCase
         $this->assertSame('https://pay.every-pay.eu/api/v4/payments', $api->getApiEndpoint());
     }
 
-    public function testShouldFillAndRequestOneOff(): void
+    public function testRequestOneOff(): void
     {
-        $clientMock = $this->createMock(HttpClientInterface::class);
-        $responseMock = $this->createMock(ResponseInterface::class);
-        $streamMock = $this->createMock(StreamInterface::class);
-
-        $streamMock->expects($this->once())->method('getContents')->willReturn('{"foo": "bar"}');
-        $responseMock->expects($this->atLeastOnce())->method('getStatusCode')->willReturn(200);
-        $responseMock->expects($this->once())->method('getBody')->willReturn($streamMock);
+        $clientMock = $this->createClientMock([
+            new R(
+                expectRequestPath: '/api/v4/payments/oneoff',
+                expectRequestMethod: 'POST',
+                expectRequestBodyFieldsEqual: [
+                    'account_name' => 'test_account_name',
+                    'token_consent_agreed' => true,
+                    'locale' => 'en',
+                    'amount' => 1.23,
+                    'order_reference' => "a-zA-Z0-9/-?:().,'+",
+                    'customer_ip' => '127.0.0.1',
+                    'customer_url' => 'http://localhost',
+                    'email' => 'example@example.com',
+                    'payment_description' => "a-zA-Z0-9/-?:().,'+",
+                    'api_username' => 'test_username',
+                ],
+                expectRequestBodyHasFields: ['nonce', 'timestamp'],
+                responseStatusCode: 200,
+                responseContents: '{"foo": "bar"}',
+            )
+        ]);
 
         $api = new Api(
             client: $clientMock,
@@ -62,32 +74,7 @@ class ApiTest extends TestCase
             secret: 'test_secret',
             accountName: 'test_account_name',
             sandbox: true,
-            locale: 'en',
-            tokenConsentAgreed: true
-        );
-
-        $clientMock->expects($this->once())->method('send')->willReturnCallback(
-            function (RequestInterface $request) use ($responseMock) {
-                $actual = json_decode($request->getBody()->getContents(), true);
-
-                $this->assertIsArray($actual);
-                $this->assertEquals([
-                    'account_name' => 'test_account_name',
-                    'token_consent_agreed' => true,
-                    'locale' => 'en',
-                    'nonce' => $actual['nonce'],
-                    'timestamp' => $actual['timestamp'],
-                    'amount' => 1.23,
-                    'order_reference' => "a-zA-Z0-9/-?:().,'+",
-                    'customer_ip' => '127.0.0.1',
-                    'customer_url' => 'http://localhost',
-                    'email' => 'example@example.com',
-                    'payment_description' => "a-zA-Z0-9/-?:().,'+",
-                    'api_username' => 'test_username',
-                ], $actual);
-
-                return $responseMock;
-            }
+            locale: 'en'
         );
 
         $response = $api->doOneOff(new ArrayObject([
@@ -97,72 +84,25 @@ class ApiTest extends TestCase
             'customer_ip' => '127.0.0.1',
             'customer_url' => 'http://localhost',
             'email' => 'example@example.com',
+            'token_consent_agreed' => true,
         ]));
 
         $this->assertEquals(['foo' => 'bar'], $response);
     }
 
-    public function testShouldFillRequestTokenField(): void
+    public function testModifyCustomerUrl(): void
     {
-        $clientMock = $this->createMock(HttpClientInterface::class);
-        $responseMock = $this->createMock(ResponseInterface::class);
-        $streamMock = $this->createMock(StreamInterface::class);
-
-        $streamMock->expects($this->once())->method('getContents')->willReturn('{"foo": "bar"}');
-        $responseMock->expects($this->atLeastOnce())->method('getStatusCode')->willReturn(200);
-        $responseMock->expects($this->once())->method('getBody')->willReturn($streamMock);
-
-        $api = new Api(
-            client: $clientMock,
-            messageFactory: $this->createHttpMessageFactory(),
-            username: 'test_username',
-            secret: 'test_secret',
-            accountName: 'test_account_name',
-            sandbox: true,
-            tokenAgreement: 'unscheduled',
-        );
-
-        $clientMock->expects($this->once())->method('send')->willReturnCallback(
-            function (RequestInterface $request) use ($responseMock) {
-                $actual = json_decode($request->getBody()->getContents(), true);
-
-                $this->assertIsArray($actual);
-                $this->assertEquals([
-                    'account_name' => 'test_account_name',
-                    'nonce' => $actual['nonce'],
-                    'timestamp' => $actual['timestamp'],
-                    'amount' => 1.23,
-                    'order_reference' => "a-zA-Z0-9/-?:().,'+",
-                    'customer_url' => 'http://localhost',
-                    'email' => 'example@example.com',
-                    'api_username' => 'test_username',
-                    'token_agreement' => 'unscheduled',
-                    'request_token' => true
-                ], $actual);
-
-                return $responseMock;
-            }
-        );
-
-        $response = $api->doOneOff(new ArrayObject([
-            'amount' => 1.23,
-            'order_reference' => "a-zA-Z0-9/-?:().,'+",
-            'customer_url' => 'http://localhost',
-            'email' => 'example@example.com',
-        ]));
-
-        $this->assertEquals(['foo' => 'bar'], $response);
-    }
-
-    public function testShouldModifyCustomerUrl(): void
-    {
-        $clientMock = $this->createMock(HttpClientInterface::class);
-        $responseMock = $this->createMock(ResponseInterface::class);
-        $streamMock = $this->createMock(StreamInterface::class);
-
-        $streamMock->expects($this->once())->method('getContents')->willReturn('{"foo": "bar"}');
-        $responseMock->expects($this->atLeastOnce())->method('getStatusCode')->willReturn(200);
-        $responseMock->expects($this->once())->method('getBody')->willReturn($streamMock);
+        $clientMock = $this->createClientMock([
+            new R(
+                expectRequestPath: '/api/v4/payments/oneoff',
+                expectRequestMethod: 'POST',
+                expectRequestBodyFieldsEqual:[
+                    'customer_url' => 'https://example.com'
+                ],
+                responseStatusCode: 200,
+                responseContents: '{"foo": "bar"}',
+            )
+        ]);
 
         $api = new Api(
             client: $clientMock,
@@ -175,26 +115,6 @@ class ApiTest extends TestCase
             customerUrlReplaceReplacement: 'https://example.com',
         );
 
-        $clientMock->expects($this->once())->method('send')->willReturnCallback(
-            function (RequestInterface $request) use ($responseMock) {
-                $actual = json_decode($request->getBody()->getContents(), true);
-
-                $this->assertIsArray($actual);
-                $this->assertEquals([
-                    'account_name' => 'test_account_name',
-                    'nonce' => $actual['nonce'],
-                    'timestamp' => $actual['timestamp'],
-                    'amount' => 1.23,
-                    'order_reference' => "a-zA-Z0-9/-?:().,'+",
-                    'customer_url' => 'https://example.com',
-                    'email' => 'example@example.com',
-                    'api_username' => 'test_username',
-                ], $actual);
-
-                return $responseMock;
-            }
-        );
-
         $response = $api->doOneOff(new ArrayObject([
             'amount' => 1.23,
             'order_reference' => "a-zA-Z0-9/-?:().,'+",
@@ -205,10 +125,10 @@ class ApiTest extends TestCase
         $this->assertEquals(['foo' => 'bar'], $response);
     }
 
-    public function testShouldValidateOrderReference(): void
+    public function testValidateOrderReference(): void
     {
         $api = new Api(
-            client: $this->createMock(HttpClientInterface::class),
+            client: $this->createClientMock([]),
             messageFactory: $this->createHttpMessageFactory(),
             username: 'test_username',
             secret: 'test_secret',
@@ -222,10 +142,10 @@ class ApiTest extends TestCase
         ]));
     }
 
-    public function testShouldValidateDescription(): void
+    public function testValidateDescription(): void
     {
         $api = new Api(
-            client: $this->createMock(HttpClientInterface::class),
+            client: $this->createClientMock([]),
             messageFactory: $this->createHttpMessageFactory(),
             username: 'test_username',
             secret: 'test_secret',
@@ -237,11 +157,5 @@ class ApiTest extends TestCase
         $api->doOneOff(new ArrayObject([
             'payment_description' => ' ',
         ]));
-    }
-
-
-    private function createHttpMessageFactory(): MessageFactory
-    {
-        return MessageFactoryDiscovery::find();
     }
 }

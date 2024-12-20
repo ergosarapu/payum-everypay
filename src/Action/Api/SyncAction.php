@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ErgoSarapu\PayumEveryPay\Action\Api;
 
 use ErgoSarapu\PayumEveryPay\Api;
+use ErgoSarapu\PayumEveryPay\Util\Util;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
@@ -28,7 +29,7 @@ class SyncAction extends BaseApiAwareAction
         }
 
         $response = $this->api->doGetPaymentStatus($model);
-        $model->exchangeArray($response);
+        Util::updateModel($model, $response);
     }
 
     /**
