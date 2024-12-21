@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ErgoSarapu\PayumEveryPay\Action;
 
-use ErgoSarapu\PayumEveryPay\ApiErrorException;
 use ErgoSarapu\PayumEveryPay\Const\PaymentType;
 use ErgoSarapu\PayumEveryPay\Request\Api\Authorize as ApiAuthorize;
 use ErgoSarapu\PayumEveryPay\Request\Api\Capture as ApiCapture;
@@ -15,6 +14,7 @@ use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\GatewayAwareInterface;
 use Payum\Core\GatewayAwareTrait;
 use Payum\Core\Model\PaymentInterface;
+use Payum\Core\Request\Authorize;
 use Payum\Core\Request\Capture;
 use Payum\Core\Request\Convert;
 use Payum\Core\Request\GetHumanStatus;
@@ -41,7 +41,7 @@ class CaptureAction implements ActionInterface, GatewayAwareInterface
 
         $token = $request->getToken();
 
-        if ($token !== null) {
+        if ($token !== null && in_array($model['_type'], [PaymentType::ONE_OFF, PaymentType::CIT])) {
             $model['customer_url'] = $token->getAfterUrl();
         }
 
@@ -54,7 +54,12 @@ class CaptureAction implements ActionInterface, GatewayAwareInterface
             $this->gateway->execute($convert = new Convert($request->getFirstModel(), 'array', $request->getToken()));
             $result = ArrayObject::ensureArrayObject($convert->getResult());
             Util::updateModel($model, $result->toUnsafeArray());
-        } else {
+        }
+
+        // Execute authorize only if status is new.
+        // This is because Capture may be called for already authorized payment
+        // and in this case we do not want to trigger authorization any more.
+        if ($getStatus->isNew()) {
             // Executing ApiAuthorize may throw Redirect (the case with OneOff and CIT payments).
             // Therefore we need to complete capture when Notify is triggered.
             // We will set a flag to make this happen.
@@ -66,26 +71,8 @@ class CaptureAction implements ActionInterface, GatewayAwareInterface
             unset($model['_auto_capture_with_notify']);
         }
 
-        $this->gateway->execute($getStatus = new GetHumanStatus($model));
-
-        // Capture is done only when payment is settled (Captured)
-        if ($getStatus->isCaptured()) {
-            try {
-                $this->gateway->execute(new ApiCapture($model));
-            } catch (ApiErrorException $e) {
-                // Ignore Api Error in case capture has been already done.
-                // This may happen when capture is attempted by simultaneous
-                // processes, e.g:
-                // 1. Api\OneOffAction succeeds
-                // 2. Asynchronous (through callback URL) NotifyAction triggers Capture
-                // 3. Customer URL Notify triggers Capture
-
-                // 4032 - Can not be captured
-                if ($e->getCode() !== 4032) {
-                    throw $e;
-                }
-            }
-        }
+        // Attempt capture
+        $this->gateway->execute(new ApiCapture($model));
     }
 
     /**

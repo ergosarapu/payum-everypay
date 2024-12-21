@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ErgoSarapu\PayumEveryPay\Action\Api;
 
 use ErgoSarapu\PayumEveryPay\Api;
+use ErgoSarapu\PayumEveryPay\ApiErrorException;
 use ErgoSarapu\PayumEveryPay\Request\Api\Capture;
-use ErgoSarapu\PayumEveryPay\Request\Api\OneOff;
 use ErgoSarapu\PayumEveryPay\Util\Util;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
@@ -17,7 +17,7 @@ class CaptureAction extends BaseApiAwareAction
     /**
      * {@inheritDoc}
      *
-     * @param OneOff $request
+     * @param Capture $request
      */
     public function execute($request): void
     {
@@ -29,8 +29,22 @@ class CaptureAction extends BaseApiAwareAction
             throw new UnsupportedApiException('Incompatible api instance');
         }
 
-        $response = $this->api->doCapture($model);
-        Util::updateModel($model, $response);
+        try {
+            $response = $this->api->doCapture($model);
+            Util::updateModel($model, $response);
+        } catch (ApiErrorException $e) {
+            // Ignore Api Error in case capture has been already done.
+            // This may happen when capture is attempted by simultaneous
+            // processes, e.g:
+            // 1. Api\OneOffAction succeeds
+            // 2. Asynchronous NotifyAction (through callback URL) triggers Capture
+            // 3. Customer URL Notify triggers Capture
+
+            // 4032 - Can not be captured
+            if ($e->getCode() !== 4032) {
+                throw $e;
+            }
+        }
     }
 
     /**

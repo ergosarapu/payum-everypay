@@ -51,13 +51,11 @@ class CaptureActionTest extends TestCase
         $expectRequestClasses = [
             GetHumanStatus::class,
             ApiAuthorize::class,
-            GetHumanStatus::class,
             ApiCapture::class,
         ];
         $runFunctions = [
             fn ($request) => $request->markNew(),
             null,
-            fn ($request) => $request->markCaptured(),
             null,
         ];
         $gatewayMock = $this->createMock(GatewayInterface::class);
@@ -68,6 +66,7 @@ class CaptureActionTest extends TestCase
                 $class = array_shift($expectRequestClasses);
                 $fn = array_shift($runFunctions);
 
+                $this->assertNotNull($class);
                 $this->assertTrue(class_exists($class));
                 $this->assertInstanceOf($class, $request);
 
@@ -101,13 +100,11 @@ class CaptureActionTest extends TestCase
         $expectRequestClasses = [
             GetHumanStatus::class,
             Convert::class,
-            GetHumanStatus::class,
             ApiCapture::class,
         ];
         $runFunctions = [
             fn ($request) => $request->markPending(),
             fn ($request) => $request->setResult([]),
-            fn ($request) => $request->markCaptured(),
             null,
         ];
         $gatewayMock = $this->createMock(GatewayInterface::class);
@@ -118,6 +115,7 @@ class CaptureActionTest extends TestCase
                 $class = array_shift($expectRequestClasses);
                 $fn = array_shift($runFunctions);
 
+                $this->assertNotNull($class);
                 $this->assertTrue(class_exists($class));
                 $this->assertInstanceOf($class, $request);
 
