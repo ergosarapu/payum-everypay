@@ -10,6 +10,7 @@ use ErgoSarapu\PayumEveryPay\Api;
 use ErgoSarapu\PayumEveryPay\Const\PaymentType;
 use ErgoSarapu\PayumEveryPay\Request\Api\Authorize;
 use ErgoSarapu\PayumEveryPay\Request\Api\Capture;
+use ErgoSarapu\PayumEveryPay\Tests\Helper\GatewayMockTrait;
 use Payum\Core\GatewayInterface;
 use Payum\Core\Reply\HttpRedirect;
 use Payum\Core\Request\GetHttpRequest;
@@ -20,6 +21,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(CitAndChargeAction::class)]
 class CitAndChargeActionTest extends TestCase
 {
+    use GatewayMockTrait;
+
     public function testImplements(): void
     {
         $action = new CitAndChargeAction();
@@ -51,15 +54,9 @@ class CitAndChargeActionTest extends TestCase
             ->method('doCharge')
             ->willReturn(['payment_state' => 'settled', 'payment_link' => 'https://igw-demo.every-pay.com/foo/bar']);
 
-        $gatewayMock = $this->createMock(GatewayInterface::class);
-        $gatewayMock
-            ->expects($this->once())
-            ->method('execute')
-            ->with($this->callback(function (GetHttpRequest $request): bool {
-                $request->clientIp = '127.0.0.1';
-                return true;
-            }))
-        ;
+        $gatewayMock = $this->createGatewayExecuteMock([
+            fn (GetHttpRequest $request) => $request->clientIp = '127.0.0.1',
+        ]);
 
         $action = new CitAndChargeAction();
         $action->setApi($apiMock);

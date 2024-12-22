@@ -22,7 +22,7 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
     use GatewayAwareTrait;
 
     public const AUTO_CAPTURE_QUEUED = 'queued';
-    private const AUTO_CAPTURE_TRIGGERED = 'triggered';
+    public const AUTO_CAPTURE_TRIGGERED = 'triggered';
 
     /**
      * {@inheritDoc}
@@ -49,15 +49,18 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
 
         $this->gateway->execute(new Sync($model));
 
-        $payment = $request->getFirstModel();
-        if ($payment instanceof PaymentInterface) {
-            $payment->setDetails($model);
+        $this->gateway->execute($getStatus = new GetHumanStatus($model));
+
+        if (!$getStatus->isCaptured()) {
+            return;
         }
-        $this->gateway->execute(new GetHumanStatus($payment));
 
         if ($model['_auto_capture_with_notify'] === self::AUTO_CAPTURE_QUEUED) {
             $model['_auto_capture_with_notify'] = self::AUTO_CAPTURE_TRIGGERED;
-            $this->gateway->execute(new Capture($payment));
+
+            $request = new Capture($request->getFirstModel());
+            $request->setModel($model);
+            $this->gateway->execute($request);
         }
     }
 
@@ -69,6 +72,7 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
         return
             $request instanceof Notify
             && $request->getModel() instanceof \ArrayAccess
+            && $request->getFirstModel() instanceof PaymentInterface
         ;
     }
 }

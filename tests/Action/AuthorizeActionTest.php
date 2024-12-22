@@ -37,7 +37,6 @@ class AuthorizeActionTest extends TestCase
         $this->assertFalse($action->supports(new Authorize(null)));
         $this->assertFalse($action->supports(new Capture(null)));
         $this->assertFalse($action->supports(new Capture([])));
-
     }
 
 }

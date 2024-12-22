@@ -7,6 +7,7 @@ namespace ErgoSarapu\PayumEveryPay\Tests\Action;
 use ErgoSarapu\PayumEveryPay\Action\CaptureAction;
 use ErgoSarapu\PayumEveryPay\Request\Api\Authorize as ApiAuthorize;
 use ErgoSarapu\PayumEveryPay\Request\Api\Capture as ApiCapture;
+use ErgoSarapu\PayumEveryPay\Tests\Helper\GatewayMockTrait;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\GatewayInterface;
@@ -22,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(CaptureAction::class)]
 class CaptureActionTest extends TestCase
 {
+    use GatewayMockTrait;
+
     public function testImplements(): void
     {
         $action = new CaptureAction();
@@ -48,35 +51,11 @@ class CaptureActionTest extends TestCase
 
     public function testNewPaymentTriggersApiAuthorizeAndCapture(): void
     {
-        $expectRequestClasses = [
-            GetHumanStatus::class,
-            ApiAuthorize::class,
-            ApiCapture::class,
-        ];
-        $runFunctions = [
-            fn ($request) => $request->markNew(),
-            null,
-            null,
-        ];
-        $gatewayMock = $this->createMock(GatewayInterface::class);
-        $gatewayMock
-            ->expects($this->exactly(count($expectRequestClasses)))
-            ->method('execute')
-            ->with($this->callback(function ($request) use (&$expectRequestClasses, &$runFunctions): bool {
-                $class = array_shift($expectRequestClasses);
-                $fn = array_shift($runFunctions);
-
-                $this->assertNotNull($class);
-                $this->assertTrue(class_exists($class));
-                $this->assertInstanceOf($class, $request);
-
-                if ($fn !== null) {
-                    $fn($request);
-                }
-
-                return true;
-            }))
-        ;
+        $gatewayMock = $this->createGatewayExecuteMock([
+            fn (GetHumanStatus $request) => $request->markNew(),
+            fn (ApiAuthorize $request) => null,
+            fn (ApiCapture $request) => null,
+        ]);
 
         $action = new CaptureAction();
         $action->setGateway($gatewayMock);
@@ -97,35 +76,11 @@ class CaptureActionTest extends TestCase
 
     public function testNotNewPaymentConvertsAndTriggersApiCapture(): void
     {
-        $expectRequestClasses = [
-            GetHumanStatus::class,
-            Convert::class,
-            ApiCapture::class,
-        ];
-        $runFunctions = [
-            fn ($request) => $request->markPending(),
-            fn ($request) => $request->setResult([]),
-            null,
-        ];
-        $gatewayMock = $this->createMock(GatewayInterface::class);
-        $gatewayMock
-            ->expects($this->exactly(count($expectRequestClasses)))
-            ->method('execute')
-            ->with($this->callback(function ($request) use (&$expectRequestClasses, &$runFunctions): bool {
-                $class = array_shift($expectRequestClasses);
-                $fn = array_shift($runFunctions);
-
-                $this->assertNotNull($class);
-                $this->assertTrue(class_exists($class));
-                $this->assertInstanceOf($class, $request);
-
-                if ($fn !== null) {
-                    $fn($request);
-                }
-
-                return true;
-            }))
-        ;
+        $gatewayMock = $this->createGatewayExecuteMock([
+            fn (GetHumanStatus $request) => $request->markPending(),
+            fn (Convert $request) => $request->setResult([]),
+            fn (ApiCapture $request) => null,
+        ]);
 
         $action = new CaptureAction();
         $action->setGateway($gatewayMock);
