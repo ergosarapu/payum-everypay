@@ -33,6 +33,7 @@
         "psr-4": { "ErgoSarapu\\PayumEveryPay\\Tests\\": "tests" }
     },
     "require": {
+        "php": "^8.2",
         "payum/core": "^1.7",
         "php-http/message-factory": "^1.1",
         "beberlei/assert": "^3.3"
