@@ -248,6 +248,7 @@ class GatewayFunctionalTest extends TestCase
                 new R(
                     expectRequestPath:'/api/v4/payments/capture',
                     expectRequestMethod:'POST',
+                    expectRequestBodyFieldsEqual:['amount' => 1.00],
                     responseStatusCode:200,
                     responseContents:'{"payment_state": "settled"}'
                 )
@@ -259,12 +260,14 @@ class GatewayFunctionalTest extends TestCase
         // Create MIT authorized payment
         $payment = new Payment();
         $payment->setNumber('123');
+        $payment->setTotalAmount(100); // This should overwrite the amount in details - the case with partial capture
         $payment->setDetails(
             [
                 '_type' => PaymentType::MIT,
                 'payment_reference' => 'abc',
                 'payment_state' => PaymentState::SETTLED,
                 'token_agreement' => TokenAgreement::UNSCHEDULED,
+                'amount' => 1.23,
                 'cc_details' => [
                     'token' => 'abc',
                 ],
@@ -392,12 +395,12 @@ class GatewayFunctionalTest extends TestCase
             ]),
         ]);
 
-        // $model = ArrayObject::ensureArrayObject($request->getModel());
         $payment = new Payment();
         $payment->setDetails(
             [
                 '_auto_capture_with_notify' => NotifyAction::AUTO_CAPTURE_QUEUED,
-                'payment_state' => PaymentState::SETTLED
+                'payment_state' => PaymentState::SETTLED,
+                'amount' => 1.23,
             ]
         );
         $request = new Notify($payment);

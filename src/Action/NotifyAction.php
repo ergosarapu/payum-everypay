@@ -58,9 +58,7 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
         if ($model['_auto_capture_with_notify'] === self::AUTO_CAPTURE_QUEUED) {
             $model['_auto_capture_with_notify'] = self::AUTO_CAPTURE_TRIGGERED;
 
-            $request = new Capture($request->getFirstModel());
-            $request->setModel($model);
-            $this->gateway->execute($request);
+            $this->gateway->execute(new Capture($model));
         }
     }
 

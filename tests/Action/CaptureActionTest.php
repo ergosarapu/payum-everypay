@@ -14,7 +14,6 @@ use Payum\Core\GatewayInterface;
 use Payum\Core\Model\Payment;
 use Payum\Core\Request\Authorize;
 use Payum\Core\Request\Capture;
-use Payum\Core\Request\Convert;
 use Payum\Core\Request\GetHumanStatus;
 use Payum\Core\Security\TokenInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -38,13 +37,8 @@ class CaptureActionTest extends TestCase
     {
         $action = new CaptureAction();
 
-        $payment = new Payment();
-        $request = new Capture($payment);
-        $request->setModel($payment->getDetails());
-        $this->assertTrue($action->supports($request));
-
+        $this->assertTrue($action->supports(new Capture([])));
         $this->assertFalse($action->supports(new Capture(null)));
-        $this->assertFalse($action->supports(new Capture([])));
         $this->assertFalse($action->supports(new Authorize(null)));
         $this->assertFalse($action->supports(new Authorize([])));
     }
@@ -73,23 +67,4 @@ class CaptureActionTest extends TestCase
         $action->execute($request);
     }
 
-
-    public function testNotNewPaymentConvertsAndTriggersApiCapture(): void
-    {
-        $gatewayMock = $this->createGatewayExecuteMock([
-            fn (GetHumanStatus $request) => $request->markPending(),
-            fn (Convert $request) => $request->setResult([]),
-            fn (ApiCapture $request) => null,
-        ]);
-
-        $action = new CaptureAction();
-        $action->setGateway($gatewayMock);
-
-        $payment = new Payment();
-        $payment->setDetails(['payment_state' => 'settled']);
-        $request = new Capture($payment);
-        $request->setModel($payment->getDetails());
-
-        $action->execute($request);
-    }
 }

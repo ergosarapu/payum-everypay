@@ -13,6 +13,7 @@ use ErgoSarapu\PayumEveryPay\Action\Api\SyncAction;
 use ErgoSarapu\PayumEveryPay\Action\AuthorizeAction;
 use ErgoSarapu\PayumEveryPay\Action\CancelAction;
 use ErgoSarapu\PayumEveryPay\Action\CaptureAction;
+use ErgoSarapu\PayumEveryPay\Action\CapturePaymentAction;
 use ErgoSarapu\PayumEveryPay\Action\ConvertPaymentAction;
 use ErgoSarapu\PayumEveryPay\Action\NotifyAction;
 use ErgoSarapu\PayumEveryPay\Action\RefundAction;
@@ -32,6 +33,8 @@ class EveryPayGatewayFactory extends GatewayFactory
     protected function populateConfig(ArrayObject $config): void
     {
 
+        // This will override the core CapturePaymentAction
+        $config['payum.action.capture_payment'] = new CapturePaymentAction();
 
         $config->defaults([
             'payum.factory_name' => 'everypay',
