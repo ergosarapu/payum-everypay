@@ -1,4 +1,4 @@
-name: Build
+name: Check and Test
 
 on:
   push:
@@ -10,8 +10,11 @@ on:
       - master
 
 jobs:
-  phpunit:
+  check_and_test:
     runs-on: ubuntu-latest
+
+    env:
+      PHP_CS_FIXER_IGNORE_ENV: true
 
     strategy: 
       fail-fast: false
