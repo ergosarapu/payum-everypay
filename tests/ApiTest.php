@@ -125,6 +125,40 @@ class ApiTest extends TestCase
         $this->assertEquals(['foo' => 'bar'], $response);
     }
 
+    public function testModifyOneOffPaymentLink(): void
+    {
+        $clientMock = $this->createClientMock([
+            new R(
+                expectRequestPath: '/api/v4/payments/oneoff',
+                expectRequestMethod: 'POST',
+                expectRequestBodyFieldsEqual:[
+                    'customer_url' => 'https://example.com'
+                ],
+                responseStatusCode: 200,
+                responseContents: '{"payment_link": "https://igw-demo.every-pay.com/foo/bar"}',
+            )
+        ]);
+
+        $api = new Api(
+            client: $clientMock,
+            messageFactory: $this->createHttpMessageFactory(),
+            username: 'test_username',
+            secret: 'test_secret',
+            accountName: 'test_account_name',
+            sandbox: true,
+            methodSource: 'card',
+        );
+
+        $response = $api->doOneOff(new ArrayObject([
+            'amount' => 1.23,
+            'order_reference' => "a-zA-Z0-9/-?:().,'+",
+            'customer_url' => 'https://example.com',
+            'email' => 'example@example.com',
+        ]));
+
+        $this->assertEquals(['payment_link' => 'https://igw-demo.every-pay.com/foo/bar?method_source=card'], $response);
+    }
+
     public function testValidateOrderReference(): void
     {
         $api = new Api(

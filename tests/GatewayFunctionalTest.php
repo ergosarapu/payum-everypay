@@ -82,7 +82,11 @@ class GatewayFunctionalTest extends TestCase
         );
 
         // Create gateway
-        $gateway = $this->createTestGateway($clientMock, $messageFactory);
+        $gateway = $this->createTestGateway(
+            $clientMock,
+            $messageFactory,
+            ['payment_link_method_source' => 'card']
+        );
 
         // Create payment for Capture
         $payment = new Payment();
@@ -102,7 +106,7 @@ class GatewayFunctionalTest extends TestCase
             $exception = $e;
         }
         $this->assertNotNull($exception);
-        $this->assertEquals('https://example.com', $exception->getUrl());
+        $this->assertEquals('https://example.com?method_source=card', $exception->getUrl());
         $this->assertEquals(302, $exception->getStatusCode());
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
@@ -283,7 +287,6 @@ class GatewayFunctionalTest extends TestCase
     }
 
     #[DataProvider('newPaymentRequestExpectations')]
-
     public function testNewCitPaymentAuthorizeOrCaptureTriggersApiCitAndCharge(string $requestClass, ?string $expectAutoCapture): void
     {
         // Mock and set expectations on network requests

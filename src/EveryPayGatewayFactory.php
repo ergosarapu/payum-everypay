@@ -59,8 +59,11 @@ class EveryPayGatewayFactory extends GatewayFactory
         if (false == $config['payum.api']) {
             $defaults = [
                 'sandbox' => true,
-                'token_agreement' => null,
-                'token_consent_agreed' => false,
+                // Appends method_source query parameter to payment_link (redirect url) enabling to
+                // open specific payment method (e.g. card).
+                // For available values you can inspect the payment dialog HTML source
+                // by searching for 'method_source'.
+                'payment_link_method_source' => null,
 
                 // Config for modifying customer_url sent to EveryPay API.
                 // It is not possible to use an IP address or localhost
@@ -97,6 +100,7 @@ class EveryPayGatewayFactory extends GatewayFactory
                 Assertion::string($config['secret']);
                 Assertion::string($config['account_name']);
                 Assertion::boolean($config['sandbox']);
+                Assertion::nullOrString($config['payment_link_method_source']);
                 Assertion::nullOrString($config['customer_url_replace_search']);
                 Assertion::nullOrString($config['customer_url_replace_replacement']);
 
@@ -107,6 +111,7 @@ class EveryPayGatewayFactory extends GatewayFactory
                     secret: $config['secret'],
                     accountName: $config['account_name'],
                     sandbox: $config['sandbox'],
+                    methodSource: $config['payment_link_method_source'],
                     customerUrlReplaceSearch: $config['customer_url_replace_search'],
                     customerUrlReplaceReplacement: $config['customer_url_replace_replacement']
                 );

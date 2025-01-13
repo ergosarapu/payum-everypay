@@ -24,6 +24,7 @@ class Api
         private string $secret,
         private string $accountName,
         private bool $sandbox,
+        private ?string $methodSource = null,
         private ?string $locale = null,
         private ?string $customerUrlReplaceSearch = null,
         private ?string $customerUrlReplaceReplacement = null
@@ -108,6 +109,7 @@ class Api
     {
         $fields = $this->prepareOneOffFields($model);
         $response = $this->doRequest('POST', '/oneoff', $fields);
+        $this->modifyPaymentLink($response);
         return $response;
     }
 
@@ -284,5 +286,22 @@ class Api
         ];
 
         return $fields;
+    }
+
+    /**
+     *
+     * @param array<string, mixed> &$model
+     */
+    private function modifyPaymentLink(array &$model): void
+    {
+        if ($this->methodSource === null) {
+            return;
+        }
+
+        if (!is_string($model['payment_link'])) {
+            return;
+        }
+
+        $model['payment_link'] = $model['payment_link'] . '?method_source=' . $this->methodSource;
     }
 }
