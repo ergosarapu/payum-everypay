@@ -85,7 +85,7 @@ class GatewayFunctionalTest extends TestCase
         $gateway = $this->createTestGateway(
             $clientMock,
             $messageFactory,
-            ['payment_link_method_source' => 'card']
+            ['method_source' => 'card']
         );
 
         // Create payment for Capture
