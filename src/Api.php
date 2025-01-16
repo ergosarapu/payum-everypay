@@ -181,10 +181,15 @@ class Api
         Assert::that($model['token_agreement'])->inArray([TokenAgreement::RECURRING, TokenAgreement::UNSCHEDULED]);
         Assert::that($model['customer_url'])->url();
         Assert::that($model['order_reference'])->string()->maxLength(120)->regex(self::ALLOWED_CHARS);
+        Assert::thatNullOr($model['email'])->maxLength(255);
+        Assertion::nullOrString($model['customer_ip']);
 
         $fields['order_reference'] = $model['order_reference'];
         $fields['token_agreement'] = $model['token_agreement'];
         $fields['customer_url'] = $model['customer_url'];
+        $fields['email'] = $model['email'];
+        $fields['customer_ip'] = $model['customer_ip'];
+        $fields['locale'] = $this->locale;
 
         return $fields;
     }
@@ -213,10 +218,12 @@ class Api
         Assertion::string($model['merchant_ip'], 'merchant_ip is not string');
         Assertion::ip($model['merchant_ip'], message: sprintf("merchant_ip '%s' is not valid IP address", $model['merchant_ip']), flag:null);
         Assert::that($model['order_reference'])->string()->maxLength(120)->regex(self::ALLOWED_CHARS);
+        Assert::thatNullOr($model['email'])->maxLength(255);
 
         $fields['order_reference'] = $model['order_reference'];
         $fields['token_agreement'] = $model['token_agreement'];
         $fields['merchant_ip'] = $model['merchant_ip'];
+        $fields['email'] = $model['email'];
 
         return $fields;
     }
