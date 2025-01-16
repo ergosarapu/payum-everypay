@@ -12,9 +12,9 @@ composer require ergosarapu/payum-everypay
 
 ### Configure EveryPay callback notifications
 
-1. Create notify token without payment model identity. If using Symfony, this can be done similarly:
+1. Create notify token without payment model identity. If using Symfony, this can be done as follows:
     ```bash
-    php bin/console payum:security:create-notify-token everypay --model-class=Acme\PaymentBundle\Entity\Payment
+    php bin/console payum:security:create-notify-token everypay
     ```
 2. Configure notification callback in EveryPay merchant portal with the generated URL
 3. Register [CallbackNotificationIdentityResolverExtension](./src/Extension/CallbackNotificationIdentityResolverExtension.php) with the gateway. This extension resolves the payment model identity based on the `payment_reference`.
