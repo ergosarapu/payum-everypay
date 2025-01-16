@@ -10,8 +10,10 @@ use ErgoSarapu\PayumEveryPay\Api;
 use ErgoSarapu\PayumEveryPay\Const\PaymentType;
 use ErgoSarapu\PayumEveryPay\Request\Api\Authorize;
 use ErgoSarapu\PayumEveryPay\Request\Api\Capture;
+use ErgoSarapu\PayumEveryPay\Tests\Helper\GatewayMockTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\GatewayInterface;
+use Payum\Core\Request\GetHumanStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -19,6 +21,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(MitAndChargeAction::class)]
 class MitAndChargeActionTest extends TestCase
 {
+    use GatewayMockTrait;
+
     public function testImplements(): void
     {
         $action = new MitAndChargeAction();
@@ -40,6 +44,10 @@ class MitAndChargeActionTest extends TestCase
 
     public function testCallsApiMitAndCharge(): void
     {
+        $gatewayMock = $this->createGatewayExecuteMock([
+            fn (GetHumanStatus $request) => $request->markNew(),
+        ]);
+
         $apiMock = $this->createMock(Api::class);
         $apiMock
             ->expects($this->once())
@@ -52,6 +60,7 @@ class MitAndChargeActionTest extends TestCase
 
         $action = new MitAndChargeAction();
         $action->setApi($apiMock);
+        $action->setGateway($gatewayMock);
 
         $request = new Authorize(['_type' => PaymentType::MIT]);
         $action->execute($request);

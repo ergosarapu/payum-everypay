@@ -14,6 +14,7 @@ use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Reply\HttpRedirect;
 use Payum\Core\Request\GetHttpRequest;
+use Payum\Core\Request\GetHumanStatus;
 
 class CitAndChargeAction extends BaseApiAwareAction
 {
@@ -38,8 +39,16 @@ class CitAndChargeAction extends BaseApiAwareAction
 
         $model->validatedKeysSet(['customer_url']);
 
-        $response = $this->api->doCit($model);
-        Util::updateModel($model, $response);
+        $this->gateway->execute($status = new GetHumanStatus($model));
+
+        // Execute doCit only in case the status is new. If the status
+        // is not new, this means doCit may have already been called
+        // (e.g. the previous payment attempt succeeded doCit, but failed
+        // in doCharge and the upstream process is retrying payment).
+        if ($status->isNew()) {
+            $response = $this->api->doCit($model);
+            Util::updateModel($model, $response);
+        }
 
         $response = $this->api->doCharge($model);
         Util::updateModel($model, $response);

@@ -6,7 +6,6 @@ namespace ErgoSarapu\PayumEveryPay\Action;
 
 use ErgoSarapu\PayumEveryPay\Request\Api\Authorize as ApiAuthorize;
 use ErgoSarapu\PayumEveryPay\Request\Api\Capture as ApiCapture;
-use Payum\Core\Request\Authorize;
 use Payum\Core\Request\Capture;
 use Payum\Core\Request\GetHumanStatus;
 
@@ -23,10 +22,7 @@ class CaptureAction extends AbstractInitialAction
 
         $this->gateway->execute($status = new GetHumanStatus($model));
 
-        // Execute authorize only if status is new.
-        // This is because Capture may be called for already authorized payment
-        // and in this case we do not want to trigger authorization any more.
-        if ($status->isNew()) {
+        if ($status->isNew() || $status->isPending()) {
             // Executing ApiAuthorize may throw Redirect (the case with OneOff and CIT payments).
             // Therefore we need to complete capture when Notify is triggered.
             // We will set a flag to make this happen.

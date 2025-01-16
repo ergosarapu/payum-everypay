@@ -11,6 +11,7 @@ use ErgoSarapu\PayumEveryPay\Util\Util;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
+use Payum\Core\Request\GetHumanStatus;
 
 class MitAndChargeAction extends BaseApiAwareAction
 {
@@ -37,8 +38,16 @@ class MitAndChargeAction extends BaseApiAwareAction
             $model['merchant_ip'] = $host;
         }
 
-        $response = $this->api->doMit($model);
-        Util::updateModel($model, $response);
+        $this->gateway->execute($status = new GetHumanStatus($model));
+
+        // Execute doMit only in case the status is new. If the status
+        // is not new, this means doMit may have already been called
+        // (e.g. the previous payment attempt succeeded doMit, but failed
+        // in doCharge and the upstream process is retrying payment).
+        if ($status->isNew()) {
+            $response = $this->api->doMit($model);
+            Util::updateModel($model, $response);
+        }
 
         $response = $this->api->doCharge($model);
         Util::updateModel($model, $response);

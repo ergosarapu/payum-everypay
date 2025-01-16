@@ -14,6 +14,7 @@ use ErgoSarapu\PayumEveryPay\Tests\Helper\GatewayMockTrait;
 use Payum\Core\GatewayInterface;
 use Payum\Core\Reply\HttpRedirect;
 use Payum\Core\Request\GetHttpRequest;
+use Payum\Core\Request\GetHumanStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -56,6 +57,7 @@ class CitAndChargeActionTest extends TestCase
 
         $gatewayMock = $this->createGatewayExecuteMock([
             fn (GetHttpRequest $request) => $request->clientIp = '127.0.0.1',
+            fn (GetHumanStatus $request) => $request->markNew(),
         ]);
 
         $action = new CitAndChargeAction();
