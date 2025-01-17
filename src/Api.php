@@ -249,7 +249,18 @@ class Api
         Assertion::string($model['token_details']['token']);
         Assertion::string($model['payment_reference']);
 
-        $fields['token_details'] = ['token' => $model['token_details']['token']];
+        $fields['token_details'] = [];
+        $fields['token_details']['token'] = $model['token_details']['token'];
+        if (isset($model['token_details']['token_owner'])) {
+            $fields['token_details']['token_owner'] = $model['token_details']['token_owner'];
+        }
+        if (isset($model['token_details']['token_timestamp'])) {
+            $fields['token_details']['token_timestamp'] = $model['token_details']['token_timestamp'];
+        }
+        if (isset($model['token_details']['token_hmac'])) {
+            $fields['token_details']['token_hmac'] = $model['token_details']['token_hmac'];
+        }
+
         $fields['payment_reference'] = $model['payment_reference'];
 
         return $fields;

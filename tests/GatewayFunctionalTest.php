@@ -177,7 +177,13 @@ class GatewayFunctionalTest extends TestCase
                     expectRequestPath:'/api/v4/payments/charge',
                     expectRequestMethod:'POST',
                     responseStatusCode:200,
-                    responseContents:'{"payment_state": "settled"}'
+                    responseContents:'{"payment_state": "settled"}',
+                    expectRequestBodyFieldsEqual:[
+                        'token_details' => [
+                            'token' => 'abc',
+                            'token_owner' => 'def',
+                            'token_timestamp' => '123',
+                            'token_hmac' => 'ghi']]
                 ),
                 new R(
                     expectRequestPath:'/api/v4/payments/capture',
@@ -189,7 +195,14 @@ class GatewayFunctionalTest extends TestCase
         );
 
         $gateway = $this->createTestGateway($clientMock, $messageFactory, [
-            'payum.extension.token_details_for_authorize' => new PrepareForMitPaymentExtension('abc', TokenAgreement::UNSCHEDULED),
+            'payum.extension.token_details_for_authorize' => new PrepareForMitPaymentExtension(
+                [
+                    'token' => 'abc',
+                    'token_owner' => 'def',
+                    'token_timestamp' => '123',
+                    'token_hmac' => 'ghi'],
+                TokenAgreement::UNSCHEDULED
+            ),
         ]);
 
         // Create payment
@@ -224,7 +237,7 @@ class GatewayFunctionalTest extends TestCase
         );
 
         $gateway = $this->createTestGateway($clientMock, $messageFactory, [
-            'payum.extension.token_details_for_authorize' => new PrepareForMitPaymentExtension('abc', TokenAgreement::UNSCHEDULED),
+            'payum.extension.token_details_for_authorize' => new PrepareForMitPaymentExtension(['token' => 'abc'], TokenAgreement::UNSCHEDULED),
         ]);
 
         // Create payment
@@ -303,13 +316,23 @@ class GatewayFunctionalTest extends TestCase
                     expectRequestPath:'/api/v4/payments/charge',
                     expectRequestMethod:'POST',
                     responseStatusCode:200,
-                    responseContents:'{"payment_state": "settled", "payment_link": "https://igw-demo.every-pay.com/foo/bar"}'
+                    responseContents:'{"payment_state": "settled", "payment_link": "https://igw-demo.every-pay.com/foo/bar"}',
+                    expectRequestBodyFieldsEqual:[
+                        'token_details' => [
+                            'token' => 'abc',
+                            'token_owner' => 'def',
+                            'token_timestamp' => '123',
+                            'token_hmac' => 'ghi']]
                 )
             ]
         );
 
         $gateway = $this->createTestGateway($clientMock, $messageFactory, [
-            'payum.extension.token_details_for_authorize' => new PrepareForCitPaymentExtension('abc', TokenAgreement::UNSCHEDULED),
+            'payum.extension.token_details_for_authorize' => new PrepareForCitPaymentExtension([
+                'token' => 'abc',
+                'token_owner' => 'def',
+                'token_timestamp' => '123',
+                'token_hmac' => 'ghi'], TokenAgreement::UNSCHEDULED),
         ]);
 
         // Create payment

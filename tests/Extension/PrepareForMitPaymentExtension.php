@@ -13,7 +13,10 @@ use Payum\Core\Request\Capture;
 
 class PrepareForMitPaymentExtension implements ExtensionInterface
 {
-    public function __construct(private string $token, private string $tokenAgreement)
+    /**
+     * @param array<string,string> $tokenDetails
+     */
+    public function __construct(private array $tokenDetails, private string $tokenAgreement)
     {
     }
 
@@ -35,7 +38,7 @@ class PrepareForMitPaymentExtension implements ExtensionInterface
 
         $model['_type'] = PaymentType::MIT;
         $model['token_agreement'] = $this->tokenAgreement;
-        $model['token_details'] = ['token' => $this->token];
+        $model['token_details'] = $this->tokenDetails;
 
         // Start of pseudo code
 
