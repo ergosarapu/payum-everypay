@@ -427,6 +427,7 @@ class GatewayFunctionalTest extends TestCase
                 '_auto_capture_with_notify' => NotifyAction::AUTO_CAPTURE_QUEUED,
                 'payment_state' => PaymentState::SETTLED,
                 'amount' => 1.23,
+                'payment_method' => 'card',
             ]
         );
         $request = new Notify($payment);

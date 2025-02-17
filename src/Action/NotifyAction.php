@@ -51,10 +51,20 @@ class NotifyAction implements ActionInterface, GatewayAwareInterface
 
         $this->gateway->execute($getStatus = new GetHumanStatus($model));
 
+        // Continue with automatic capture ...
+
+        // Authorized payment capture is exlusive for card payment only
+        if ($model['payment_method'] !== 'card') {
+            return;
+        }
+
+        // Capture should be done only if payment is authorized.
+        // See StatusAction for reasoning why we do not check isAuthorized() here
         if (!$getStatus->isCaptured()) {
             return;
         }
 
+        // Execute capture if it has been requested
         if ($model['_auto_capture_with_notify'] === self::AUTO_CAPTURE_QUEUED) {
             $model['_auto_capture_with_notify'] = self::AUTO_CAPTURE_TRIGGERED;
 
