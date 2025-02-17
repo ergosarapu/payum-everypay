@@ -102,6 +102,7 @@ class NotifyActionTest extends TestCase
             function (Sync $request) {
                 $model = ArrayObject::ensureArrayObject($request->getModel());
                 $model['payment_state'] = PaymentState::SETTLED;
+                $model['payment_method'] = 'card';
             },
             fn (GetHumanStatus $request) => $request->markCaptured(),
             fn (Capture $request) => null
